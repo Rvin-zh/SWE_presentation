@@ -1,36 +1,30 @@
-# shop_v2.py
-import json
+# Programmer B's changes (discount_feature.py)
 from datetime import datetime
 
 
 class ShopManager:
-    def __init__(self, inventory_file="inventory.json"):
-        self.inventory_file = inventory_file
-        self.inventory = self._load_inventory()
-        self.sales = []
+    def __init__(self, data_dir="shop_data"):
+        # Existing initialization code...
+        self.discounts_file = self.data_dir / "discounts.json"
+        self.discounts = self._load_json(self.discounts_file)
 
-    def _load_inventory(self):
-        try:
-            with open(self.inventory_file, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
-
-    def save_inventory(self):
-        with open(self.inventory_file, "w") as f:
-            json.dump(self.inventory, f, indent=4)
-
-    def add_product(self, name, price, quantity):
-        self.inventory[name] = {
-            "price": price,
-            "quantity": quantity,
-            "last_updated": datetime.now().isoformat(),
+    def add_discount(self, product_name, percentage, start_date, end_date):
+        self.discounts[product_name] = {
+            "percentage": percentage,
+            "start_date": start_date,
+            "end_date": end_date,
         }
-        self.save_inventory()
+        self._save_json(self.discounts, self.discounts_file)
 
-    def generate_sales_report(self):
-        total = sum(
-            self.inventory[sale["product"]]["price"] * sale["quantity"]
-            for sale in self.sales
-        )
-        return f"Total Sales: ${total:.2f}"
+    def sell_product(self, name, quantity):
+        if name in self.discounts:
+            current_date = datetime.now().isoformat()
+            if (
+                self.discounts[name]["start_date"]
+                <= current_date
+                <= self.discounts[name]["end_date"]
+            ):
+                self.inventory[name]["price"] *= (
+                    1 - self.discounts[name]["percentage"] / 100
+                )
+        return super().sell_product(name, quantity)
